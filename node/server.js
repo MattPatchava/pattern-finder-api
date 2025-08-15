@@ -202,14 +202,18 @@ async function maybeRunNext() {
 
             updateToFinished.run({
                 id: job.id,
-                status: "finished",
                 finishedAt: Date.now(),
-                input: result.input,
-                digest: result.digest,
                 success: result.success ? 1 : 0,
+                input: result.match_data.input,
+                digest: result.match_data.digest,
             });
         } catch (e) {
-            console.error("Failed to parse binary output:", e, "Raw output:", chunk);
+            console.error(
+                "Failed to parse binary output:",
+                e,
+                "Raw output:",
+                chunk,
+            );
         }
     });
 }
