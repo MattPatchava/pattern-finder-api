@@ -79,3 +79,19 @@ const updateToCancelled = db.prepare(`
 
 const getJob = db.prepare(`SELECT * FROM jobs WHERE id=?`);
 
+// Express app
+const app = express();
+app.use(express.json({ limit: "1mb" }));
+
+// Auth: Login route
+app.post("/v1/auth/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  const user = USERS.find(
+    (u) => u.username === username && u.password === password,
+  );
+  if (!user) return res.status(401).json({ error: "Invalid credentials" });
+  // Generate JWT
+  // Send JWT in response
+});
+
