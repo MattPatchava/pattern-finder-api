@@ -19,3 +19,20 @@ const BINARY_PATH = process.env.BINARY_PATH || path.join((process.cwd(), "patter
 const MAX_CONCURRENT = parseInt(process.env.MAX_CONCURRENT) || 1;
 const MAX_QUEUE = parseInt(process.env.MAX_QUEUE);
 const RETRY_AFTER_SECONDS = parseInt(process.env.RETRY_AFTER_SECONDS);
+
+// Hardcoded users
+const users = [
+  {
+    id: "admin",
+    username: "admin",
+    password: "password",
+    role: "admin",
+  },
+  {
+    id: "standard",
+    username: "standard",
+    password: "password",
+    role: "standard",
+  },
+];
+
