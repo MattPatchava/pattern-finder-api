@@ -159,6 +159,50 @@ function ensureValidInputLengthSha256(i) {
 // Queue management
 function enqueueJob(id) {
   queue.push(id);
+  setImmediate(maybeRunNext);
+}
+
+async function maybeRunNext() {
+    if (running >= MAX_CONCURRENT) return;
+    const nextId = queue.shift();
+    if (!nextId) return;
+    const job = getJob.get(nextId);
+    console.log("Fetched job:", job);
+    if (!job || job.status !== "queued") return maybeRunNext();
+
+    const startedAt = Date.now();
+    updateToRunning.run({ id: job.id, startedAt });
+
+    running++;
+
+    const argv = [
+        "--pattern", job.pattern,
+        "--protocol", job.protocol,
+        "--input-length", String(job.inputLength),
+        "--format", "json",
+    ];
+    const child = spawn(BINARY_PATH, argv);
+
+    active.set(job.id, { child, startedAt });
+
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+
+    child.stdout.on("data", (chunk) => {
+        try {
+            const result = JSON.parse(chunk);
+
+            updateToFinished.run({
+                id: job.id,
+                status: "finished",
+                finishedAt: Date.now(),
+                input: result.input,
+                digest: result.digest,
+            });
+        } catch (e) {
+            console.error("Failed to parse binary output:", e, "Raw output:", chunk);
+        }
+    });
 }
 
 app.listen(PORT, () => {
