@@ -1,0 +1,8 @@
+# Node
+node/node_modules
+node/app.db
+node/.env
+node/node
+
+# Rust
+rust/target/
