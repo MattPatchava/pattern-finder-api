@@ -36,3 +36,46 @@ const users = [
   },
 ];
 
+// SQLite setup
+const db = new Database(DB_PATH);
+db.exec(`
+    CREATE TABLE IF NOT EXISTS jobs (
+        id TEXT PRIMARY KEY,
+        owner TEXT NOT NULL,
+        pattern TEXT NOT NULL,
+        protocol TEXT NOT NULL,
+        inputLength INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        submittedAt INTEGER NOT NULL,
+        startedAt INTEGER,
+        finishedAt INTEGER,
+        input TEXT,
+        digest TEXT
+    );`);
+
+// Prepared statements for updating SQLite entries
+const insertJob = db.prepare(`
+    INSERT INTO jobs (id, owner, pattern, protocol, inputLength, status, submittedAt)
+    VALUES (@id, @owner, @pattern, @protocol, @inputLength, @status, @submittedAt)
+`);
+
+const updateToRunning = db.prepare(`
+    UPDATE jobs
+    SET status='running', startedAt=@startedAt
+    WHERE id=@id
+`);
+
+const updateToFinished = db.prepare(`
+    UPDATE jobs
+    SET status=@status, finishedAt=@finishedAt, input=@input, digest=@digest
+    WHERE id=@id
+`);
+
+const updateToCancelled = db.prepare(`
+    UPDATE jobs
+    SET status='cancelled', finishedAt=@finishedAt
+    WHERE id=@id
+`);
+
+const getJob = db.prepare(`SELECT * FROM jobs WHERE id=?`);
+
