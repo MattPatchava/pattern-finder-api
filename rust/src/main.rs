@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, ValueEnum};
+use serde::Serialize;
 
 mod miner;
 mod utils;
@@ -61,6 +62,13 @@ impl std::fmt::Display for HashingProtocol {
     }
 }
 
+#[derive(Serialize)]
+struct MiningResult {
+    success: bool,
+    match_data: Option<miner::MinedMatch>,
+    message: Option<String>,
+}
+
 fn main() -> Result<()> {
     let args: Args = Args::parse();
 
@@ -90,9 +98,32 @@ Mining...
 
     if let Some(m) = miner::mine(&pattern, &args.protocol, args.input_length)? {
         match args.format {
-            OutputFormat::Json => serde_json::to_writer(std::io::stdout(), &m)?,
+            OutputFormat::Json => {
+                let mining_result: MiningResult = MiningResult {
+                    success: true,
+                    match_data: Some(m),
+                    message: None,
+                };
+                serde_json::to_writer(std::io::stdout(), &mining_result)?
+            }
             OutputFormat::Text => {
                 println!("Match Found\nInput: {},\nDigest: {}", m.input(), m.digest())
+            }
+        }
+    } else {
+        match args.format {
+            OutputFormat::Json => {
+                let mining_result: MiningResult = MiningResult {
+                    success: false,
+                    match_data: None,
+                    message: None,
+                };
+                serde_json::to_writer(std::io::stdout(), &mining_result)?
+            }
+            OutputFormat::Text => {
+                println!(
+                    "No pattern found with the specified prefix. Try increasing the input length."
+                );
             }
         }
     }
