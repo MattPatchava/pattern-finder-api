@@ -158,6 +158,31 @@ function ensureValidInputLengthSha256(i) {
     return Number.isInteger(i) && i >= 1 && i <= 64;
 }
 
+// Search for job
+app.get("/v1/jobs/:id", (req, res) => {
+    const job = getJob.get(req.params.id);
+    if (!job) return res.status(404).json({ error: "Not found" });
+    // if (!requireAdminOrOwner(job, req.user)) return res.status(403).json({ error: "Forbidden" });
+
+    res.status(200).json({
+        id: job.id,
+        owner: job.owner,
+        pattern: job.pattern,
+        protocol: job.protocol,
+        inputLength: job.inputLength,
+        status: job.status,
+        submittedAt: job.submittedAt,
+        startedAt: job.startedAt,
+        finishedAt: job.finishedAt,
+        durationMs: job.finishedAt - job.startedAt,
+        success: job.success,
+        input: job.input,
+        digest: job.digest,
+    });
+});
+
+function requireAdminOrOwner(job, user) {
+    return user.id === job.owner || user.role === "admin";
 }
 
 // Queue management
