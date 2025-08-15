@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::{Parser, ValueEnum};
 
 mod miner;
@@ -17,6 +18,28 @@ struct Args {
 
     #[arg(long, default_value_t = 6)]
     input_length: usize,
+
+    #[arg(long, default_value_t = OutputFormat::Text)]
+    format: OutputFormat,
+}
+
+#[derive(ValueEnum, Clone)]
+enum OutputFormat {
+    Text,
+    Json,
+}
+
+impl std::fmt::Display for OutputFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(
+            f,
+            "{}",
+            match self {
+                OutputFormat::Text => "text",
+                OutputFormat::Json => "json",
+            }
+        )
+    }
 }
 
 #[derive(ValueEnum, Clone)]
@@ -38,7 +61,7 @@ impl std::fmt::Display for HashingProtocol {
     }
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args: Args = Args::parse();
 
     let pattern: String = match utils::validate_hex_pattern(&args.pattern, 64) {
@@ -49,22 +72,30 @@ fn main() {
         }
     };
 
-    println!(
-        "Pattern to match: {}\nHashing protocol: {}\nMax input length: {}",
-        pattern, args.protocol, args.input_length
-    );
+    if let OutputFormat::Text = args.format {
+        println!(
+            r"
+pattern-finder
+==============
 
-    match miner::mine(&pattern, &args.protocol, args.input_length) {
-        Ok(opt) => match opt {
-            Some(m) => println!(
-                "Matching Pattern Found\nInput: {}, Digest: {}",
-                m.input(),
-                m.digest()
-            ),
-            None => println!("No matching patterns found for pattern: {}", pattern),
-        },
-        Err(e) => {
-            eprintln!("Error: {:?}", e);
+Pattern: {}
+Protocol: {}
+Max Input Length: {}
+
+Mining...
+",
+            pattern, args.protocol, args.input_length
+        );
+    }
+
+    if let Some(m) = miner::mine(&pattern, &args.protocol, args.input_length)? {
+        match args.format {
+            OutputFormat::Json => serde_json::to_writer(std::io::stdout(), &m)?,
+            OutputFormat::Text => {
+                println!("Match Found\nInput: {},\nDigest: {}", m.input(), m.digest())
+            }
         }
     }
+
+    Ok(())
 }

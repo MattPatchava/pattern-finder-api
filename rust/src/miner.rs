@@ -1,9 +1,11 @@
 use anyhow::{Context, Result};
 use rayon::prelude::*;
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::HashingProtocol;
 
+#[derive(Serialize)]
 pub struct MinedMatch {
     input: String,
     digest: String,
@@ -44,8 +46,8 @@ fn compare_patterns(input: &str, pattern: &[u8]) -> Option<String> {
     let digest: [u8; 32] = Sha256::digest(input.as_bytes()).into();
 
     if &digest[..pattern.len()] == pattern {
-        return Some(hex::encode(digest));
+        Some(hex::encode(digest))
+    } else {
+        None
     }
-
-    None
 }
