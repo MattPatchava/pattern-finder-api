@@ -73,7 +73,7 @@ const updateToRunning = db.prepare(`
 
 const updateToFinished = db.prepare(`
     UPDATE jobs
-    SET status=@status, finishedAt=@finishedAt, input=@input, digest=@digest
+    SET status='finished', finishedAt=@finishedAt, success=@success, input=@input, digest=@digest
     WHERE id=@id
 `);
 
@@ -206,6 +206,7 @@ async function maybeRunNext() {
                 finishedAt: Date.now(),
                 input: result.input,
                 digest: result.digest,
+                success: result.success ? 1 : 0,
             });
         } catch (e) {
             console.error("Failed to parse binary output:", e, "Raw output:", chunk);
