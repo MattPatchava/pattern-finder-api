@@ -1,21 +1,21 @@
 {
-  "name": "pattern-finder-api",
-  "version": "1.0.0",
-  "description": "REST API wrapper for the pattern-finder Rust binary, providing network access for CPU-intensive hash pattern mining.",
-  "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Matthew Patchava",
-  "license": "ISC",
-  "dependencies": {
-    "better-sqlite3": "^12.2.0",
-    "child_process": "^1.0.2",
-    "dotenv": "^17.2.1",
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2"
-  },
-  "devDependencies": {
-    "prettier": "^3.6.2"
-  }
+    "name": "pattern-finder-api",
+    "version": "1.0.0",
+    "description": "REST API wrapper for the pattern-finder Rust binary, providing network access for CPU-intensive hash pattern mining.",
+    "main": "server.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Matthew Patchava",
+    "license": "ISC",
+    "dependencies": {
+        "better-sqlite3": "^12.2.0",
+        "child_process": "^1.0.2",
+        "dotenv": "^17.2.1",
+        "express": "^5.1.0",
+        "jsonwebtoken": "^9.0.2"
+    },
+    "devDependencies": {
+        "prettier": "^3.6.2"
+    }
 }
