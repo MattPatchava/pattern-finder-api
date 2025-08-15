@@ -53,6 +53,10 @@ db.exec(`
         digest TEXT
     );`);
 
+const queue = [];
+const active = new Map();
+let running = 0;
+
 // Prepared statements for updating SQLite entries
 const insertJob = db.prepare(`
     INSERT INTO jobs (id, owner, pattern, protocol, inputLength, status, submittedAt)
@@ -95,3 +99,68 @@ app.post("/v1/auth/login", async (req, res) => {
   // Send JWT in response
 });
 
+// Receive job
+app.post("/v1/jobs", async (req, res) => {
+  if (queue.length > MAX_QUEUE) {
+    res.set("Retry-After", String(RETRY_AFTER_SECONDS));
+    return res.status(429).json({ error: "Server busy. Try again later." });
+  }
+
+  const { pattern, protocol, inputLength } = req.body;
+
+  // Validate user input
+  if (!ensureValidHex(pattern)) {
+    return res.status(400).json({ error: "Invalid hexadecimal pattern" });
+  }
+
+  if (!ensureValidProtocol(protocol)) {
+    return res.status(400).json({ error: "Invalid protocol" });
+  }
+
+  if (!ensureValidInputLengthSha256(inputLength)) {
+    return res.status(400).json({ error: "Invalid input length (1-64)" });
+  }
+
+  const id = crypto.randomUUID();
+  const submittedAt = Date.now();
+
+  insertJob.run({
+    id,
+    // Hardcoding user ID for now until JWT middleware is implemented
+    owner: "admin",
+    pattern,
+    protocol,
+    inputLength,
+    status: "queued",
+    submittedAt,
+  });
+
+  enqueueJob(id);
+
+  return res.status(202).json({ id, status: "queued" });
+});
+
+// Input validation
+function ensureValidHex(h) {
+  return typeof h === "string" && /^[0-9a-fA-F]{1,64}$/.test(h);
+}
+
+function ensureValidProtocol(protocol) {
+  // Update this after adding support for other hashing protocols
+  return protocol === "sha256";
+}
+
+function ensureValidInputLengthSha256(i) {
+  // sha256 hashes are 64 hex digits
+  i = parseInt(i, 10);
+  return Number.isInteger(i) && i >= 1 && i <= 64;
+}
+
+// Queue management
+function enqueueJob(id) {
+  queue.push(id);
+}
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
