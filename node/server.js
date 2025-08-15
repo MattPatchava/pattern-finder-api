@@ -13,7 +13,9 @@ const Database = require("better-sqlite3");
 // Set configuration settings
 const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
-const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, "app.db");
+const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
+fs.mkdirSync(DATA_DIR, { recursive: true });
+const DB_PATH = path.join(DATA_DIR, "app.db");
 const BINARY_PATH =
     process.env.BINARY_PATH || path.join((process.cwd(), "pattern-finder"));
 // Defaulting to 1 instance while miner spawns thread count == logical CPUs. In later iterations limit miner threads and allow multiple miner instances

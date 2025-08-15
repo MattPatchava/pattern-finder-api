@@ -3,6 +3,7 @@ node/node_modules
 node/app.db
 node/.env
 node/node
+node/data
 
 # Rust
 rust/target/
