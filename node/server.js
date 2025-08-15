@@ -50,6 +50,7 @@ db.exec(`
         submittedAt INTEGER NOT NULL,
         startedAt INTEGER,
         finishedAt INTEGER,
+        success INTEGER,
         input TEXT,
         digest TEXT
     );`);
