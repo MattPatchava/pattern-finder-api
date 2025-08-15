@@ -14,7 +14,8 @@ const Database = require("better-sqlite3");
 const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, "app.db");
-const BINARY_PATH = process.env.BINARY_PATH || path.join((process.cwd(), "pattern-finder"));
+const BINARY_PATH =
+    process.env.BINARY_PATH || path.join((process.cwd(), "pattern-finder"));
 // Defaulting to 1 instance while miner spawns thread count == logical CPUs. In later iterations limit miner threads and allow multiple miner instances
 const MAX_CONCURRENT = parseInt(process.env.MAX_CONCURRENT) || 1;
 const MAX_QUEUE = parseInt(process.env.MAX_QUEUE);
@@ -22,18 +23,18 @@ const RETRY_AFTER_SECONDS = parseInt(process.env.RETRY_AFTER_SECONDS);
 
 // Hardcoded users
 const users = [
-  {
-    id: "admin",
-    username: "admin",
-    password: "password",
-    role: "admin",
-  },
-  {
-    id: "standard",
-    username: "standard",
-    password: "password",
-    role: "standard",
-  },
+    {
+        id: "admin",
+        username: "admin",
+        password: "password",
+        role: "admin",
+    },
+    {
+        id: "standard",
+        username: "standard",
+        password: "password",
+        role: "standard",
+    },
 ];
 
 // SQLite setup
@@ -89,77 +90,79 @@ app.use(express.json({ limit: "1mb" }));
 
 // Auth: Login route
 app.post("/v1/auth/login", async (req, res) => {
-  const { username, password } = req.body;
+    const { username, password } = req.body;
 
-  const user = USERS.find(
-    (u) => u.username === username && u.password === password,
-  );
-  if (!user) return res.status(401).json({ error: "Invalid credentials" });
-  // Generate JWT
-  // Send JWT in response
+    const user = USERS.find(
+        (u) => u.username === username && u.password === password,
+    );
+    if (!user) return res.status(401).json({ error: "Invalid credentials" });
+    // Generate JWT
+    // Send JWT in response
 });
 
 // Receive job
 app.post("/v1/jobs", async (req, res) => {
-  if (queue.length > MAX_QUEUE) {
-    res.set("Retry-After", String(RETRY_AFTER_SECONDS));
-    return res.status(429).json({ error: "Server busy. Try again later." });
-  }
+    if (queue.length > MAX_QUEUE) {
+        res.set("Retry-After", String(RETRY_AFTER_SECONDS));
+        return res.status(429).json({ error: "Server busy. Try again later." });
+    }
 
-  const { pattern, protocol, inputLength } = req.body;
+    const { pattern, protocol, inputLength } = req.body;
 
-  // Validate user input
-  if (!ensureValidHex(pattern)) {
-    return res.status(400).json({ error: "Invalid hexadecimal pattern" });
-  }
+    // Validate user input
+    if (!ensureValidHex(pattern)) {
+        return res.status(400).json({ error: "Invalid hexadecimal pattern" });
+    }
 
-  if (!ensureValidProtocol(protocol)) {
-    return res.status(400).json({ error: "Invalid protocol" });
-  }
+    if (!ensureValidProtocol(protocol)) {
+        return res.status(400).json({ error: "Invalid protocol" });
+    }
 
-  if (!ensureValidInputLengthSha256(inputLength)) {
-    return res.status(400).json({ error: "Invalid input length (1-64)" });
-  }
+    if (!ensureValidInputLengthSha256(inputLength)) {
+        return res.status(400).json({ error: "Invalid input length (1-64)" });
+    }
 
-  const id = crypto.randomUUID();
-  const submittedAt = Date.now();
+    const id = crypto.randomUUID();
+    const submittedAt = Date.now();
 
-  insertJob.run({
-    id,
-    // Hardcoding user ID for now until JWT middleware is implemented
-    owner: "admin",
-    pattern,
-    protocol,
-    inputLength,
-    status: "queued",
-    submittedAt,
-  });
+    insertJob.run({
+        id,
+        // Hardcoding user ID for now until JWT middleware is implemented
+        owner: "admin",
+        pattern,
+        protocol,
+        inputLength,
+        status: "queued",
+        submittedAt,
+    });
 
-  enqueueJob(id);
+    enqueueJob(id);
 
-  return res.status(202).json({ id, status: "queued" });
+    return res.status(202).json({ id, status: "queued" });
 });
 
 // Input validation
 function ensureValidHex(h) {
-  return typeof h === "string" && /^[0-9a-fA-F]{1,64}$/.test(h);
+    return typeof h === "string" && /^[0-9a-fA-F]{1,64}$/.test(h);
 }
 
 function ensureValidProtocol(protocol) {
-  // Update this after adding support for other hashing protocols
-  return protocol === "sha256";
+    // Update this after adding support for other hashing protocols
+    return protocol === "sha256";
 }
 
 function ensureValidInputLengthSha256(i) {
-  // sha256 hashes are 64 hex digits
-  i = parseInt(i, 10);
-  return Number.isInteger(i) && i >= 1 && i <= 64;
+    // sha256 hashes are 64 hex digits
+    i = parseInt(i, 10);
+    return Number.isInteger(i) && i >= 1 && i <= 64;
+}
+
 }
 
 // Queue management
 function enqueueJob(id) {
-  queue.push(id);
-  setImmediate(maybeRunNext);
+    queue.push(id);
+    setImmediate(maybeRunNext);
 }
 
 async function maybeRunNext() {
@@ -176,10 +179,14 @@ async function maybeRunNext() {
     running++;
 
     const argv = [
-        "--pattern", job.pattern,
-        "--protocol", job.protocol,
-        "--input-length", String(job.inputLength),
-        "--format", "json",
+        "--pattern",
+        job.pattern,
+        "--protocol",
+        job.protocol,
+        "--input-length",
+        String(job.inputLength),
+        "--format",
+        "json",
     ];
     const child = spawn(BINARY_PATH, argv);
 
