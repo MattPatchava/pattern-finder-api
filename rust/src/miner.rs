@@ -26,7 +26,14 @@ pub fn mine(
     _protocol: &HashingProtocol,
     max_input_length: usize,
 ) -> Result<Option<MinedMatch>> {
-    let max_input_number: usize = 10_u64.pow(max_input_length as u32) as usize;
+    let max_input_number: usize;
+
+    if max_input_length < 20 {
+        max_input_number = 10_u64.pow(max_input_length as u32) as usize;
+    } else {
+        eprintln!("Input lengths greater than 19 are not supported in this version. Check newer releases for this functionality.");
+        return Ok(None);
+    }
 
     let pattern_bytes: Vec<u8> =
         hex::decode(pattern).context("Decoding hex-encoded string to Vec<u8>")?;
