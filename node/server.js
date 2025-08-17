@@ -21,8 +21,8 @@ const BINARY_PATH =
     process.env.BINARY_PATH || path.join(process.cwd(), "pattern-finder");
 // Defaulting to 1 instance while miner spawns thread count == logical CPUs. In later iterations limit miner threads and allow multiple miner instances
 const MAX_CONCURRENT = parseInt(process.env.MAX_CONCURRENT) || 1;
-const MAX_QUEUE = parseInt(process.env.MAX_QUEUE);
-const RETRY_AFTER_SECONDS = parseInt(process.env.RETRY_AFTER_SECONDS);
+const MAX_QUEUE = parseInt(process.env.MAX_QUEUE) || 10;
+const RETRY_AFTER_SECONDS = parseInt(process.env.RETRY_AFTER_SECONDS) || 10;
 
 // Hardcoded users
 const users = [
