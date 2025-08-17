@@ -210,6 +210,39 @@ app.get("/v1/jobs/:id", authenticateJwt, (req, res) => {
     });
 });
 
+// Fetch all jobs
+app.get("/v1/jobs", authenticateJwt, (req, res) => {
+    const userId = req.user.id;
+    const role = req.user.role;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const sortBy = req.query.sortBy || "submittedAt";
+    const sortOrder = req.query.sortOrder === "desc" ? "DESC" : "ASC";
+    const validSortColumns = ["id", "submittedAt", "owner"];
+    const sortColumn = validSortColumns.includes(sortBy) ? sortBy : "submittedAt";
+
+    let query, params;
+    if (role === "admin") {
+        query = `SELECT * FROM jobs ORDER BY ${sortColumn} ${sortOrder} LIMIT ? OFFSET ?`;
+        params = [limit, offset];
+    } else {
+        query = `SELECT * FROM jobs WHERE owner = ? ORDER BY ${sortColumn} ${sortOrder} LIMIT ? OFFSET ?`;
+        params = [userId, limit, offset];
+    }
+
+    const rows = db.prepare(query).all(...params);
+
+    res.status(200).json({
+        page: Number(page),
+        limit: Number(limit),
+        sortBy: sortColumn,
+        sortOrder,
+        results: rows,
+    });
+});
+
 function requireAdminOrOwner(job, user) {
     return user.id === job.owner || user.role === "admin";
 }
