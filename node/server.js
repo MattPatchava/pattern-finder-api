@@ -156,8 +156,7 @@ app.post("/v1/jobs", authenticateJwt, async (req, res) => {
 
     insertJob.run({
         id,
-        // Hardcoding user ID for now until JWT middleware is implemented
-        owner: "admin",
+        owner: req.user.id,
         pattern,
         protocol,
         inputLength,
