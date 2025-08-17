@@ -54,6 +54,8 @@ db.exec(`
         startedAt INTEGER,
         finishedAt INTEGER,
         success INTEGER,
+        exitCode INTEGER,
+        exitSignal TEXT,
         input TEXT,
         digest TEXT
     );`);
@@ -76,7 +78,7 @@ const updateToRunning = db.prepare(`
 
 const updateToFinished = db.prepare(`
     UPDATE jobs
-    SET status='finished', finishedAt=@finishedAt, success=@success, input=@input, digest=@digest
+    SET status='finished', finishedAt=@finishedAt, success=@success, exitCode=@exitCode, exitSignal=@exitSignal, input=@input, digest=@digest
     WHERE id=@id
 `);
 
@@ -248,25 +250,96 @@ async function maybeRunNext() {
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
 
+    let stdout = "";
+    let stderr = "";
+
     child.stdout.on("data", (chunk) => {
+        stdout += chunk;
+    });
+
+    child.stderr.on("data", (chunk) => {
+        stderr += chunk;
+    });
+
+    child.on("error", (e) => {
+        console.error("Child process error", e);
+    });
+
+    child.on("close", (exitCode, exitSignal) => {
         try {
-            const result = JSON.parse(chunk);
+            if (exitCode === 0) {
+                const result = JSON.parse(stdout);
+
+                if (result.success) {
+                    updateToFinished.run({
+                        id: job.id,
+                        finishedAt: Date.now(),
+                        success: 1,
+                        exitCode: exitCode,
+                        exitSignal: exitSignal,
+                        input: result.match_data.input,
+                        digest: result.match_data.digest,
+                    });
+                } else {
+                    updateToFinished.run({
+                        id: job.id,
+                        finishedAt: Date.now(),
+                        success: 0,
+                        exitCode: exitCode,
+                        exitSignal: exitSignal,
+                        input: null,
+                        digest: null,
+                    });
+                }
+            } else {
+                updateToFinished.run({
+                    id: job.id,
+                    finishedAt: Date.now(),
+                    success: 0,
+                    exitCode: exitCode,
+                    exitSignal: exitSignal,
+                    input: null,
+                    digest: null,
+                });
+            }
+        } catch (e) {
+
+            console.error(
+                "Failed to parse/process output:",
+                e,
+                "Raw output:",
+                stdout,
+            );
 
             updateToFinished.run({
                 id: job.id,
                 finishedAt: Date.now(),
-                success: result.success ? 1 : 0,
-                input: result.match_data.input,
-                digest: result.match_data.digest,
+                success: 0,
+                exitCode: exitCode,
+                exitSignal: exitSignal,
+                input: null,
+                digest: null,
             });
-        } catch (e) {
-            console.error(
-                "Failed to parse binary output:",
-                e,
-                "Raw output:",
-                chunk,
-            );
         }
+
+        // Logging unstructured data
+        const resultPath = path.join(DATA_DIR, "logs", job.id);
+        fs.mkdirSync(resultPath, { recursive: true });
+
+        const final = getJob.get(job.id);
+
+        fs.writeFileSync(
+            path.join(resultPath, "result.json"),
+            JSON.stringify(final),
+        );
+        fs.writeFileSync(path.join(resultPath, "stdout.txt"), stdout);
+        if (stderr)
+            fs.writeFileSync(path.join(resultPath, "stderr.txt"), stderr);
+
+        running--;
+        active.delete(job.id);
+
+        setImmediate(maybeRunNext);
     });
 }
 
