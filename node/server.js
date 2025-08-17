@@ -25,20 +25,20 @@ const MAX_QUEUE = parseInt(process.env.MAX_QUEUE) || 10;
 const RETRY_AFTER_SECONDS = parseInt(process.env.RETRY_AFTER_SECONDS) || 10;
 
 // Hardcoded users
-const users = [
-    {
+const userIds = {
+    "admin": {
         id: "admin",
         username: "admin",
         password: "password",
         role: "admin",
     },
-    {
+    "standard": {
         id: "standard",
         username: "standard",
         password: "password",
         role: "standard",
     },
-];
+};
 
 // SQLite setup
 const db = new Database(DB_PATH);
@@ -96,17 +96,42 @@ app.use(express.json({ limit: "1mb" }));
 app.post("/v1/auth/login", async (req, res) => {
     const { username, password } = req.body;
 
-    const user = USERS.find(
-        (u) => u.username === username && u.password === password,
+    const user = userIds[username];
+    if (!user || user.password !== password) return res.status(401).json({ error: "Invalid credentials" });
+
+    let token = jwt.sign(
+        { id: user.id, role: user.role },
+        JWT_SECRET,
+        { expiresIn: "15m" }
     );
-    if (!user) return res.status(401).json({ error: "Invalid credentials" });
-    // Generate JWT
-    // Send JWT in response
+
+    res.json({ token });
 });
 
+// JWT verification middleware
+function authenticateJwt(req, res, next) {
+    const header = req.headers["authorization"];
+
+    if (!header || !header.startsWith("Bearer ")) {
+        return res.status(401).json({
+            error: "Missing or invalid Authorization header"
+        });
+    }
+
+    const token = header.split(" ")[1];
+
+    jwt.verify(token, JWT_SECRET, (error, user) => {
+        if (error) return res.status(403).json({error: "Expired or invalid token"});
+
+        req.user = user;
+        next();
+    });
+}
+
+
 // Receive job
-app.post("/v1/jobs", async (req, res) => {
-    if (queue.length > MAX_QUEUE) {
+app.post("/v1/jobs", authenticateJwt, async (req, res) => {
+    if (queue.length >= MAX_QUEUE) {
         res.set("Retry-After", String(RETRY_AFTER_SECONDS));
         return res.status(429).json({ error: "Server busy. Try again later." });
     }
@@ -162,10 +187,10 @@ function ensureValidInputLengthSha256(i) {
 }
 
 // Search for job
-app.get("/v1/jobs/:id", (req, res) => {
+app.get("/v1/jobs/:id", authenticateJwt, (req, res) => {
     const job = getJob.get(req.params.id);
     if (!job) return res.status(404).json({ error: "Not found" });
-    // if (!requireAdminOrOwner(job, req.user)) return res.status(403).json({ error: "Forbidden" });
+    if (!requireAdminOrOwner(job, req.user)) return res.status(403).json({ error: "Forbidden" });
 
     res.status(200).json({
         id: job.id,
