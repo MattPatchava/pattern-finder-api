@@ -16,7 +16,7 @@ COPY node/ ./
 COPY --from=builder /usr/src/pattern-finder/target/release/pattern-finder /app/pattern-finder
 
 # Set node as the default user and give them privileges to the /app directory recursively
-RUN chown -R node:node /app
+RUN mkdir -p /app/data/jobs /app/data/logs && chown -R node:node /app
 USER node
 
 EXPOSE 8080
