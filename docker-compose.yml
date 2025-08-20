@@ -1,8 +1,15 @@
 ---
 services:
   node:
-    build: .
+    image: 901444280953.dkr.ecr.ap-southeast-2.amazonaws.com/n12098418-assignment-1:latest
     ports:
       - "80:8080"
+    volumes:
+      - jobs:/app/data/jobs
+      - logs:/app/data/logs
     env_file:
       - .env
+
+volumes:
+  jobs:
+  logs:
